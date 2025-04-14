@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"target": "ES2020", // oder ES2017 oder höher
+		"module": "ESNext", // wichtig für top-level await
+		"moduleResolution": "node",
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"strict": true
+	}
+}
