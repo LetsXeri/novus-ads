@@ -1,34 +1,52 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { createClient } from "redis";
-import mysql from "mysql2/promise";
+import Redis from "ioredis";
+import { db } from "./db";
 
 dotenv.config();
 
 const app = express();
+const port = Number(process.env.PORT) || 4000;
+const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+
 app.use(cors());
 app.use(express.json());
 
-const redis = createClient({ url: process.env.REDIS_URL });
-redis.on("error", (err) => console.error("Redis error", err));
-await redis.connect();
-
-const db = await mysql.createPool({
-	host: process.env.MYSQL_HOST,
-	user: process.env.MYSQL_USER,
-	password: process.env.MYSQL_PASSWORD,
-	database: process.env.MYSQL_DATABASE,
-	waitForConnections: true,
-	connectionLimit: 10,
+app.get("/", async (req: Request, res: Response) => {
+	const visits = await redis.incr("visits");
+	res.send(`Hello World! This endpoint was visited ${visits} times.`);
 });
 
-app.get("/api/campaigns", async (_, res) => {
-	const [rows] = await db.query("SELECT * FROM links");
-
-	res.json(rows);
+app.get("/campaigns", (req: Request, res: Response) => {
+	try {
+		const stmt = db.prepare("SELECT * FROM campaigns ORDER BY createdAt DESC");
+		const campaigns = stmt.all();
+		res.json(campaigns);
+	} catch (err) {
+		console.error("❌ Fehler beim Abrufen:", err);
+		res.status(500).send("Interner Fehler");
+	}
 });
 
-app.listen(3001, () => {
-	console.log("🚀 Backend läuft auf http://localhost:3001");
+app.post("/campaigns", (req: Request, res: Response) => {
+	const { name } = req.body;
+
+	if (!name) {
+		return res.status(400).json({ error: "Name fehlt" });
+	}
+
+	try {
+		const stmt = db.prepare("INSERT INTO campaigns (name, createdAt) VALUES (?, datetime('now'))");
+
+		const result = stmt.run(name);
+		return res.json({ id: result.lastInsertRowid, name });
+	} catch (err) {
+		console.error("❌ Fehler beim Speichern:", err);
+		return res.status(500).json({ error: "Fehler beim Speichern" });
+	}
+});
+
+app.listen(port, () => {
+	console.log(`🚀 Server läuft auf http://localhost:${port}`);
 });

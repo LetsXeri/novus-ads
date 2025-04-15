@@ -1,22 +1,60 @@
 # Node modules
-node_modules/
+frontend/node_modules/
+backend/node_modules/
+scripts/node_modules/
 
 # Build output
-dist/
-
-# Env files
-.env
-
-# TypeScript cache
-*.tsbuildinfo
+frontend/dist/
+backend/dist/
+frontend/.vite/
+frontend/.next/
+backend/build/
 
 # Logs
-logs/
-*.log
+frontend/npm-debug.log*
+backend/npm-debug.log*
+frontend/yarn-debug.log*
+backend/yarn-debug.log*
+frontend/yarn-error.log*
+backend/yarn-error.log*
+pnpm-debug.log*
 
-# IDE/Editor
+# dotenv
+frontend/.env
+frontend/.env.*
+backend/.env
+backend/.env.*
+
+# SQLite database files
+backend/*.sqlite
+backend/*.sqlite3
+backend/*.db
+backend/*.db3
+backend/prisma/dev.db
+
+# Prisma migrations (optional – je nach Workflow)
+# backend/prisma/migrations/
+
+# IDEs / Editor configs
 .vscode/
 .idea/
+*.swp
 
-# Mac & Linux system files
+# OS / System Files
 .DS_Store
+Thumbs.db
+
+# Coverage / Test Output
+frontend/coverage/
+backend/coverage/
+
+# Lockfiles (falls du nur Yarn nutzt, ggf. entfernen)
+frontend/package-lock.json
+backend/package-lock.json
+
+# Optional: Yarn Plug'n'Play
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
