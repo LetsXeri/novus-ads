@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "http://localhost:3000"; // ggf. anpassen
+const API_BASE = "http://localhost:4000"; // ggf. anpassen
 
 const campaigns = [
 	{ name: "Kampagne Frühling 2025" },

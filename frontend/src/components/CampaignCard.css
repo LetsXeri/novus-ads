@@ -1,0 +1,84 @@
+.campaign-card {
+	background-color: white;
+	border: 1px solid #e5e7eb;
+	border-radius: 16px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+	padding: 20px;
+	margin-top: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.campaign-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: start;
+}
+
+.campaign-title {
+	font-size: 1.125rem;
+	font-weight: 600;
+	margin: 0;
+	color: #1f2937;
+}
+
+.campaign-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.edit-button,
+.delete-button {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 6px;
+}
+
+.edit-button {
+	color: #2563eb;
+}
+
+.edit-button:hover {
+	color: #1e40af;
+}
+
+.delete-button {
+	color: #dc2626;
+}
+
+.delete-button:hover {
+	color: #991b1b;
+}
+
+.campaign-url {
+	font-size: 0.875rem;
+	color: #6b7280;
+	margin: 0;
+}
+
+.status-badge {
+	display: inline-block;
+	font-size: 0.75rem;
+	font-weight: 500;
+	padding: 4px 8px;
+	border-radius: 999px;
+	width: fit-content;
+}
+
+.status-aktiv {
+	background-color: #d1fae5;
+	color: #065f46;
+}
+
+.status-pausiert {
+	background-color: #fef9c3;
+	color: #92400e;
+}
+
+.status-beendet {
+	background-color: #e5e7eb;
+	color: #4b5563;
+}
