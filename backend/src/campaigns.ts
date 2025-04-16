@@ -18,13 +18,18 @@ router.get("/", (req, res) => {
 
 // POST /campaigns
 router.post("/", (req, res) => {
-	const { name } = req.body;
+	const { name, status } = req.body;
+
 	if (!name) return res.status(400).json({ error: "Name fehlt" });
 
 	try {
-		const stmt = db.prepare("INSERT INTO campaigns (name, createdAt) VALUES (?, datetime('now'))");
-		const result = stmt.run(name);
-		res.status(201).json({ id: result.lastInsertRowid, name });
+		const stmt = db.prepare(`
+			INSERT INTO campaigns (name, status, createdAt, totalEarnings)
+			VALUES (?, ?, datetime('now'), 0)
+		  `);
+		const result = stmt.run(name, status);
+
+		res.status(201).json({ id: result.lastInsertRowid, name, status: status, totalEarnings: 0 });
 	} catch (err) {
 		console.error("❌ Fehler beim Erstellen:", err);
 		res.status(500).send("Fehler beim Erstellen");
@@ -34,19 +39,37 @@ router.post("/", (req, res) => {
 // PUT /campaigns/:id
 router.put("/:id", (req, res) => {
 	const { id } = req.params;
-	const { name } = req.body;
+	const { name, status } = req.body;
 
-	if (!name) return res.status(400).json({ error: "Name fehlt" });
+	// Prüfen, ob mindestens ein Feld übergeben wurde
+	if (!name && !status) {
+		return res.status(400).json({ error: "Name oder Status muss angegeben werden" });
+	}
+
+	const fields: string[] = [];
+	const values: any[] = [];
+
+	if (typeof name === "string") {
+		fields.push("name = ?");
+		values.push(name);
+	}
+	if (typeof status === "string") {
+		fields.push("status = ?");
+		values.push(status);
+	}
+
+	const sql = `UPDATE campaigns SET ${fields.join(", ")} WHERE id = ?`;
+	values.push(id);
 
 	try {
-		const stmt = db.prepare("UPDATE campaigns SET name = ? WHERE id = ?");
-		const result = stmt.run(name, id);
+		const stmt = db.prepare(sql);
+		const result = stmt.run(...values);
 
 		if (result.changes === 0) {
 			return res.status(404).json({ error: "Kampagne nicht gefunden" });
 		}
 
-		res.json({ id, name });
+		res.json({ id, updatedFields: fields.map((f) => f.split(" = ")[0]) });
 	} catch (err) {
 		console.error("❌ Fehler beim Aktualisieren:", err);
 		res.status(500).send("Fehler beim Aktualisieren");
@@ -139,7 +162,7 @@ router.get("/:id/redirect", (req, res) => {
 			UPDATE targets
 			SET calls = calls + 1,
 				budget = CASE
-					WHEN budget IS NOT NULL AND limit IS NOT NULL THEN MAX(0, budget - ?)
+					WHEN budget IS NOT NULL AND "limit" IS NOT NULL THEN MAX(0, budget - ?)
 					ELSE budget
 				END
 			WHERE id = ?

@@ -14,11 +14,13 @@ const Targets = () => {
 		url: string;
 		weight: number;
 		limit: number | null;
+		budget: number | null;
 		campaignId: number | null;
 	}>({
 		url: "",
 		weight: 100,
 		limit: null,
+		budget: null,
 		campaignId: null,
 	});
 
@@ -39,7 +41,7 @@ const Targets = () => {
 		const { name, value } = e.target;
 		setFormData((prev) => ({
 			...prev,
-			[name]: name === "limit" || name === "weight" ? Number(value) || null : value,
+			[name]: name === "limit" || name === "weight" || name === "budget" ? Number(value) || null : value,
 		}));
 	};
 
@@ -60,6 +62,7 @@ const Targets = () => {
 			url: target.url,
 			weight: target.weight,
 			limit: target.limit,
+			budget: target.budget,
 			campaignId: target.campaignId,
 		});
 		setShowModal(true);
@@ -72,7 +75,7 @@ const Targets = () => {
 
 	const openModal = () => {
 		setEditingId(null);
-		setFormData({ url: "", weight: 100, limit: null, campaignId: null });
+		setFormData({ url: "", weight: 100, limit: null, budget: null, campaignId: null });
 		setShowModal(true);
 	};
 
@@ -130,6 +133,17 @@ const Targets = () => {
 							<label>
 								Limit:
 								<input name="limit" type="number" min={0} value={formData.limit ?? ""} onChange={handleChange} />
+							</label>
+							<label>
+								Budget (optional):
+								<input
+									name="budget"
+									type="number"
+									min={0}
+									step={0.01}
+									value={formData.budget ?? ""}
+									onChange={handleChange}
+								/>
 							</label>
 							<label>
 								Werbeplatz zuordnen:

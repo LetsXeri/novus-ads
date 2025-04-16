@@ -17,7 +17,7 @@ router.get("/", (req, res) => {
 
 // POST /targets – neue Ziel-URL anlegen
 router.post("/", (req, res) => {
-	const { url, weight, limit, campaignId } = req.body;
+	const { url, weight, limit, campaignId, budget } = req.body;
 
 	if (!url || typeof weight !== "number") {
 		return res.status(400).json({ error: "url und weight sind Pflichtfelder" });
@@ -25,10 +25,10 @@ router.post("/", (req, res) => {
 
 	try {
 		const stmt = db.prepare(`
-        INSERT INTO targets (url, weight, "limit", calls, campaignId)
-        VALUES (?, ?, ?, 0, ?)
-      `);
-		const result = stmt.run(url, weight, limit ?? null, campaignId ?? null);
+            INSERT INTO targets (url, weight, "limit", calls, campaignId, budget)
+            VALUES (?, ?, ?, 0, ?, ?)
+        `);
+		const result = stmt.run(url, weight, limit ?? null, campaignId ?? null, budget ?? null);
 
 		res.status(201).json({
 			id: result.lastInsertRowid,
@@ -37,6 +37,7 @@ router.post("/", (req, res) => {
 			limit: limit ?? null,
 			calls: 0,
 			campaignId: campaignId ?? null,
+			budget: budget ?? null,
 		});
 	} catch (err) {
 		console.error("❌ Fehler beim Anlegen:", err);
@@ -47,7 +48,7 @@ router.post("/", (req, res) => {
 // PUT /targets/:id – Ziel-URL bearbeiten
 router.put("/:id", (req, res) => {
 	const { id } = req.params;
-	const { url, weight, limit, calls, campaignId } = req.body;
+	const { url, weight, limit, calls, campaignId, budget } = req.body;
 
 	const fields: string[] = [];
 	const values: any[] = [];
@@ -68,9 +69,23 @@ router.put("/:id", (req, res) => {
 		fields.push("calls = ?");
 		values.push(calls);
 	}
-	if (typeof campaignId === "number" || campaignId === null) {
+	const parsedCampaignId =
+		campaignId === null
+			? null
+			: typeof campaignId === "number"
+			? campaignId
+			: !isNaN(Number(campaignId))
+			? Number(campaignId)
+			: undefined;
+
+	if (parsedCampaignId !== undefined) {
 		fields.push("campaignId = ?");
-		values.push(campaignId);
+		values.push(parsedCampaignId);
+	}
+
+	if (typeof budget === "number" || budget === null) {
+		fields.push("budget = ?");
+		values.push(budget);
 	}
 
 	if (fields.length === 0) {

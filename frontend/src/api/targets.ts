@@ -17,6 +17,7 @@ export const createTarget = async (data: Partial<TargetType>) => {
 };
 
 export const updateTarget = async (id: number, data: Partial<TargetType>) => {
+	console.log(data);
 	await fetch(`${API_URL}/targets/${id}`, {
 		method: "PUT",
 		headers: { "Content-Type": "application/json" },
