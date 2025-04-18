@@ -46,8 +46,14 @@ const EditCampaignModal = ({ campaign, onClose, onSave }: Props) => {
 		e.preventDefault();
 
 		try {
-			const res = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${campaign.id}`, {
-				method: "PUT",
+			const isNew = campaign.id === 0;
+			const endpoint = isNew
+				? `${import.meta.env.VITE_API_URL}/campaigns`
+				: `${import.meta.env.VITE_API_URL}/campaigns/${campaign.id}`;
+			const method = isNew ? "POST" : "PUT";
+
+			const res = await fetch(endpoint, {
+				method,
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(formData),
 			});

@@ -10,6 +10,7 @@ import EditCampaignModal from "../components/EditCampaignModal";
 const Campaigns = () => {
 	const { campaigns, loading, error } = useCampaigns();
 	const [editing, setEditing] = useState<CampaignType | null>(null);
+	const [creating, setCreating] = useState<boolean>(false);
 
 	const handleEdit = (id: number) => {
 		const campaign = campaigns.find((c) => c.id === id);
@@ -20,15 +21,27 @@ const Campaigns = () => {
 		window.location.reload(); // oder per Hook neu laden
 	};
 
-	const handleDelete = (id: number) => {
-		console.log("Delete", id);
+	const handleDelete = async (id: number) => {
+		if (!confirm("Möchtest du diese Kampagne wirklich löschen?")) return;
+
+		try {
+			const res = await fetch(`${import.meta.env.VITE_API_URL}/campaigns/${id}`, {
+				method: "DELETE",
+			});
+
+			if (!res.ok) throw new Error("Fehler beim Löschen");
+			reload();
+		} catch (err) {
+			alert("Löschen fehlgeschlagen");
+			console.error(err);
+		}
 	};
 
 	return (
 		<div className="campaigns-wrapper">
 			<div className="campaigns-header">
 				<h1 className="campaigns-title">Werbeplätze</h1>
-				<NewCampaignButton />
+				<NewCampaignButton onClick={() => setCreating(true)} />
 			</div>
 
 			{loading && <p>Lade Kampagnen...</p>}
@@ -41,6 +54,14 @@ const Campaigns = () => {
 			</div>
 
 			{editing && <EditCampaignModal campaign={editing} onClose={() => setEditing(null)} onSave={reload} />}
+
+			{creating && (
+				<EditCampaignModal
+					campaign={{ id: 0, name: "", status: "Aktiv", targets: [] }}
+					onClose={() => setCreating(false)}
+					onSave={reload}
+				/>
+			)}
 		</div>
 	);
 };

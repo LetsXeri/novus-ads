@@ -1,10 +1,13 @@
-// src/components/NewCampaignButton.tsx
 import { Plus } from "lucide-react";
 import "./NewCampaignButton.css";
 
-const NewCampaignButton = () => {
+type Props = {
+	onClick: () => void;
+};
+
+const NewCampaignButton = ({ onClick }: Props) => {
 	return (
-		<button className="new-campaign-button">
+		<button className="new-campaign-button" onClick={onClick}>
 			<Plus size={18} />
 			Neue Kampagne
 		</button>
