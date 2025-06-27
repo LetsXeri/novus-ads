@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Wartbarkeitsmetrik - Netzdiagramm</title>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				padding: 2rem;
+				background: #f9f9f9;
+			}
+			.form-group {
+				margin-bottom: 0.75rem;
+			}
+			label {
+				display: block;
+				font-weight: bold;
+				margin-bottom: 0.2rem;
+			}
+			input[type="number"] {
+				width: 60px;
+				padding: 0.3rem;
+				font-size: 1rem;
+			}
+			#chart-container {
+				width: 600px;
+				margin-top: 2rem;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Wartbarkeitsanalyse: Netzdiagramm</h1>
+
+		<form id="metrics-form">
+			<div class="form-group">
+				<label>Modularität:</label><input type="number" min="0" max="10" step="0.1" name="Modularität" value="7.5" />
+			</div>
+			<div class="form-group">
+				<label>Wiederverwendbarkeit:</label
+				><input type="number" min="0" max="10" step="0.1" name="Wiederverwendbarkeit" value="6.5" />
+			</div>
+			<div class="form-group">
+				<label>Analysierbarkeit:</label
+				><input type="number" min="0" max="10" step="0.1" name="Analysierbarkeit" value="8" />
+			</div>
+			<div class="form-group">
+				<label>Modifizierbarkeit:</label
+				><input type="number" min="0" max="10" step="0.1" name="Modifizierbarkeit" value="7" />
+			</div>
+			<div class="form-group">
+				<label>Testbarkeit:</label><input type="number" min="0" max="10" step="0.1" name="Testbarkeit" value="6" />
+			</div>
+			<div class="form-group">
+				<label>Wissensmanagement:</label
+				><input type="number" min="0" max="10" step="0.1" name="Wissensmanagement" value="5.5" />
+			</div>
+			<div class="form-group">
+				<label>Testumgebung:</label><input type="number" min="0" max="10" step="0.1" name="Testumgebung" value="4.5" />
+			</div>
+			<div class="form-group">
+				<label>Abhängigkeitsmanagement:</label
+				><input type="number" min="0" max="10" step="0.1" name="Abhängigkeitsmanagement" value="5" />
+			</div>
+
+			<button type="button" onclick="renderChart()">Diagramm anzeigen</button>
+		</form>
+
+		<div id="chart-container">
+			<canvas id="radarChart"></canvas>
+		</div>
+
+		<script>
+			let chart;
+
+			function renderChart() {
+				const form = document.getElementById("metrics-form");
+				const formData = new FormData(form);
+				const labels = [];
+				const values = [];
+
+				for (let [label, value] of formData.entries()) {
+					labels.push(label);
+					values.push(parseFloat(value));
+				}
+
+				const ctx = document.getElementById("radarChart").getContext("2d");
+
+				if (chart) chart.destroy();
+
+				chart = new Chart(ctx, {
+					type: "radar",
+					data: {
+						labels: labels,
+						datasets: [
+							{
+								label: "Wartbarkeitsprofil",
+								data: values,
+								fill: true,
+								borderColor: "rgba(54, 162, 235, 1)",
+								backgroundColor: "rgba(54, 162, 235, 0.2)",
+								pointBackgroundColor: "rgba(54, 162, 235, 1)",
+							},
+						],
+					},
+					options: {
+						responsive: true,
+						scales: {
+							r: {
+								angleLines: { display: true },
+								suggestedMin: 0,
+								suggestedMax: 10,
+								ticks: {
+									stepSize: 1,
+								},
+							},
+						},
+						plugins: {
+							legend: {
+								position: "top",
+							},
+							title: {
+								display: true,
+								text: "Netzdiagramm der Wartbarkeitsmetriken",
+							},
+						},
+					},
+				});
+			}
+
+			// Initiale Anzeige
+			window.onload = renderChart;
+		</script>
+	</body>
+</html>
