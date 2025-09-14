@@ -1,39 +1,63 @@
 # Node modules
-frontend/node_modules/
-backend/node_modules/
-scripts/node_modules/
+V1 - Grundlage/frontend/node_modules/
+V1 - Grundlage/backend/node_modules/
+V1 - Grundlage/scripts/node_modules/
+V2 - Guidelines/frontend/node_modules/
+V2 - Guidelines/backend/node_modules/
+V2 - Guidelines/scripts/node_modules/
 
 # Build output
-frontend/dist/
-backend/dist/
-frontend/.vite/
-frontend/.next/
-backend/build/
+V1 - Grundlage/frontend/dist/
+V1 - Grundlage/backend/dist/
+V1 - Grundlage/frontend/.vite/
+V1 - Grundlage/frontend/.next/
+V1 - Grundlage/backend/build/
+V2 - Guidelines/frontend/dist/
+V2 - Guidelines/backend/dist/
+V2 - Guidelines/frontend/.vite/
+V2 - Guidelines/frontend/.next/
+V2 - Guidelines/backend/build/
 
 # Logs
-frontend/npm-debug.log*
-backend/npm-debug.log*
-frontend/yarn-debug.log*
-backend/yarn-debug.log*
-frontend/yarn-error.log*
-backend/yarn-error.log*
+V1 - Grundlage/frontend/npm-debug.log*
+V1 - Grundlage/backend/npm-debug.log*
+V1 - Grundlage/frontend/yarn-debug.log*
+V1 - Grundlage/backend/yarn-debug.log*
+V1 - Grundlage/frontend/yarn-error.log*
+V1 - Grundlage/backend/yarn-error.log*
+V2 - Guidelines/frontend/npm-debug.log*
+V2 - Guidelines/backend/npm-debug.log*
+V2 - Guidelines/frontend/yarn-debug.log*
+V2 - Guidelines/backend/yarn-debug.log*
+V2 - Guidelines/frontend/yarn-error.log*
+V2 - Guidelines/backend/yarn-error.log*
 pnpm-debug.log*
 
 # dotenv
-frontend/.env
-frontend/.env.*
-backend/.env
-backend/.env.*
+V1 - Grundlage/frontend/.env
+V1 - Grundlage/frontend/.env.*
+V1 - Grundlage/backend/.env
+V1 - Grundlage/backend/.env.*
+V2 - Guidelines/frontend/.env
+V2 - Guidelines/frontend/.env.*
+V2 - Guidelines/backend/.env
+V2 - Guidelines/backend/.env.*
 
 # SQLite database files
-backend/*.sqlite
-backend/*.sqlite3
-backend/*.db
-backend/*.db3
-backend/prisma/dev.db
+V1 - Grundlage/backend/*.sqlite
+V1 - Grundlage/backend/*.sqlite3
+V1 - Grundlage/backend/*.db
+V1 - Grundlage/backend/*.db3
+V1 - Grundlage/backend/prisma/dev.db
+V2 - Guidelines/backend/*.sqlite
+V2 - Guidelines/backend/*.sqlite3
+V2 - Guidelines/backend/*.db
+V2 - Guidelines/backend/*.db3
+V2 - Guidelines/backend/prisma/dev.db
 
 # Prisma migrations (optional – je nach Workflow)
-# backend/prisma/migrations/
+# V1 - Grundlage/backend/prisma/migrations/
+# V2 - Guidelines/backend/prisma/migrations/
 
 # IDEs / Editor configs
 .vscode/
@@ -45,12 +69,16 @@ backend/prisma/dev.db
 Thumbs.db
 
 # Coverage / Test Output
-frontend/coverage/
-backend/coverage/
+V1 - Grundlage/frontend/coverage/
+V1 - Grundlage/backend/coverage/
+V2 - Guidelines/frontend/coverage/
+V2 - Guidelines/backend/coverage/
 
 # Lockfiles (falls du nur Yarn nutzt, ggf. entfernen)
-frontend/package-lock.json
-backend/package-lock.json
+V1 - Grundlage/frontend/package-lock.json
+V1 - Grundlage/backend/package-lock.json
+V2 - Guidelines/frontend/package-lock.json
+V2 - Guidelines/backend/package-lock.json
 
 # Optional: Yarn Plug'n'Play
 .yarn/cache

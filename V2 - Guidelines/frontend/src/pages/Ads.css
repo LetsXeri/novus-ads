@@ -1,0 +1,59 @@
+.ads-wrapper {
+	max-width: 800px;
+	margin: 0 auto;
+	padding: 24px;
+}
+
+.ads-title {
+	font-size: 1.5rem;
+	font-weight: bold;
+	margin-bottom: 24px;
+}
+
+.ad-form {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 24px;
+}
+
+.ad-form input {
+	padding: 8px;
+	border: 1px solid #ccc;
+	border-radius: 6px;
+	flex: 1;
+	min-width: 160px;
+}
+
+.ad-form button {
+	background: #3b82f6;
+	color: white;
+	border: none;
+	padding: 8px 16px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: 500;
+}
+
+.ad-form button:hover {
+	background: #2563eb;
+}
+
+.ad-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.ad-table th,
+.ad-table td {
+	padding: 12px;
+	border-bottom: 1px solid #ddd;
+	text-align: left;
+}
+
+.ad-table button {
+	background: none;
+	border: none;
+	cursor: pointer;
+	margin-right: 4px;
+}

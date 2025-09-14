@@ -1,0 +1,18 @@
+.new-placement-button {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background-color: #3b82f6; /* Primärfarbe */
+	color: white;
+	padding: 8px 16px;
+	border: none;
+	border-radius: 12px;
+	font-size: 0.95rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+.new-placement-button:hover {
+	background-color: #2563eb; /* dunkleres Blau */
+}

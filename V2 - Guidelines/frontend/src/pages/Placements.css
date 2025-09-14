@@ -1,0 +1,38 @@
+.placements-wrapper {
+	padding: 24px;
+	max-width: 1120px;
+	margin: 0 auto;
+}
+
+.placements-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 24px;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.placements-title {
+	font-size: 1.5rem;
+	font-weight: bold;
+	color: #111827;
+	margin: 0;
+}
+
+.placements-grid {
+	display: flex;
+	flex-direction: column;
+}
+
+@media (min-width: 768px) {
+	.placements-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (min-width: 1024px) {
+	.placements-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
