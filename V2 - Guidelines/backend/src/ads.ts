@@ -6,9 +6,16 @@ const router = Router();
 
 /**
  * Ads = vormals "Targets"
- * - Tabelle: ads (statt targets)
- * - Fremdschlüssel: placementId (statt campaignId)
+ * - Tabelle: ads
+ * - Fremdschlüssel: placementId
  */
+
+function parseNullableNumber(v: unknown): number | null | undefined {
+	if (v === null) return null;
+	if (v === undefined) return undefined;
+	const n = Number(v);
+	return Number.isFinite(n) ? n : undefined;
+}
 
 // GET /ads – alle Ads
 router.get("/", (req, res) => {
@@ -24,10 +31,19 @@ router.get("/", (req, res) => {
 
 // POST /ads – neue Ad anlegen
 router.post("/", (req, res) => {
-	const { url, weight, limit, placementId, budget } = req.body;
+	const { url, weight } = req.body;
+	const limit = parseNullableNumber(req.body?.limit) ?? null;
+	const placementId = parseNullableNumber(req.body?.placementId) ?? null;
+	const budget = parseNullableNumber(req.body?.budget) ?? null;
 
 	if (!url || typeof weight !== "number") {
 		return res.status(400).json({ error: "url und weight sind Pflichtfelder" });
+	}
+	if (budget !== null && budget < 0) {
+		return res.status(400).json({ error: "Budget darf nicht negativ sein" });
+	}
+	if (limit !== null && limit < 0) {
+		return res.status(400).json({ error: "Limit darf nicht negativ sein" });
 	}
 
 	try {
@@ -35,22 +51,16 @@ router.post("/", (req, res) => {
       INSERT INTO ads (url, weight, "limit", calls, placementId, budget)
       VALUES (?, ?, ?, 0, ?, ?)
     `);
-		const result = stmt.run(
-			url,
-			weight,
-			typeof limit === "number" ? limit : null,
-			typeof placementId === "number" ? placementId : placementId ?? null,
-			typeof budget === "number" ? budget : budget ?? null
-		);
+		const result = stmt.run(url, weight, limit, placementId, budget);
 
 		res.status(201).json({
 			id: result.lastInsertRowid,
 			url,
 			weight,
-			limit: typeof limit === "number" ? limit : null,
+			limit,
 			calls: 0,
-			placementId: typeof placementId === "number" ? placementId : placementId ?? null,
-			budget: typeof budget === "number" ? budget : budget ?? null,
+			placementId,
+			budget,
 		} as Ad);
 	} catch (err) {
 		console.error("❌ Fehler beim Anlegen:", err);
@@ -61,44 +71,48 @@ router.post("/", (req, res) => {
 // PUT /ads/:id – Ad bearbeiten
 router.put("/:id", (req, res) => {
 	const { id } = req.params;
-	const { url, weight, limit, calls, placementId, budget } = req.body;
+
+	const url = typeof req.body?.url === "string" ? req.body.url : undefined;
+	const weight = typeof req.body?.weight === "number" ? req.body.weight : undefined;
+	const calls = typeof req.body?.calls === "number" ? req.body.calls : undefined;
+
+	const limit = parseNullableNumber(req.body?.limit);
+	const budget = parseNullableNumber(req.body?.budget);
+	const placementId = parseNullableNumber(req.body?.placementId);
 
 	const fields: string[] = [];
 	const values: any[] = [];
 
-	if (typeof url === "string") {
+	if (url !== undefined) {
 		fields.push("url = ?");
 		values.push(url);
 	}
-	if (typeof weight === "number") {
+	if (weight !== undefined) {
 		fields.push("weight = ?");
 		values.push(weight);
 	}
-	if (typeof limit === "number" || limit === null) {
+	if (limit !== undefined) {
+		if (limit !== null && limit < 0) {
+			return res.status(400).json({ error: "Limit darf nicht negativ sein" });
+		}
 		fields.push('"limit" = ?');
 		values.push(limit);
 	}
-	if (typeof calls === "number") {
+	if (calls !== undefined) {
+		if (calls < 0) {
+			return res.status(400).json({ error: "Calls darf nicht negativ sein" });
+		}
 		fields.push("calls = ?");
 		values.push(calls);
 	}
-
-	// placementId robust parsen (null | number | string-number)
-	const parsedPlacementId =
-		placementId === null
-			? null
-			: typeof placementId === "number"
-			? placementId
-			: !isNaN(Number(placementId))
-			? Number(placementId)
-			: undefined;
-
-	if (parsedPlacementId !== undefined) {
+	if (placementId !== undefined) {
 		fields.push("placementId = ?");
-		values.push(parsedPlacementId);
+		values.push(placementId);
 	}
-
-	if (typeof budget === "number" || budget === null) {
+	if (budget !== undefined) {
+		if (budget !== null && budget < 0) {
+			return res.status(400).json({ error: "Budget darf nicht negativ sein" });
+		}
 		fields.push("budget = ?");
 		values.push(budget);
 	}
