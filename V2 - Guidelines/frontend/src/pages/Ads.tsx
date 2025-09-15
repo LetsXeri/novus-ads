@@ -1,14 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Ad } from "../types/ad";
 import { useAds } from "../hooks/useAds";
 import { Placement } from "../types/placement";
 import "./Ads.css";
+import { API_URL } from "../config";
+
+type SortKey = "url" | "remaining" | "spent" | "createdAt";
+
+const formatDate = (iso?: string) => {
+	if (!iso) return "-";
+	const d = new Date(iso);
+	if (isNaN(d.getTime())) return iso;
+	return d.toLocaleDateString();
+};
+
+const calcSpent = (ad: Ad) => {
+	if (ad.initialBudget == null || ad.budget == null) return 0;
+	const spent = ad.initialBudget - ad.budget;
+	return spent >= 0 ? spent : 0;
+};
 
 const Ads = () => {
 	const { ads, reload, createAd, updateAd, deleteAd } = useAds();
 	const [placements, setPlacements] = useState<Placement[]>([]);
 	const [showModal, setShowModal] = useState(false);
 	const [editingId, setEditingId] = useState<number | null>(null);
+
+	// --- Sort & Filter state ---
+	const [sortKey, setSortKey] = useState<SortKey>("createdAt");
+	const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+	const [showEmptyBudgetOnly, setShowEmptyBudgetOnly] = useState(false);
+	const [threshold, setThreshold] = useState<number>(0);
 
 	const [formData, setFormData] = useState<{
 		url: string;
@@ -27,7 +49,7 @@ const Ads = () => {
 	useEffect(() => {
 		const fetchPlacements = async () => {
 			try {
-				const res = await fetch(`${import.meta.env.VITE_API_URL}/placements`);
+				const res = await fetch(`${API_URL}/placements`);
 				const data = await res.json();
 				setPlacements(data);
 			} catch (err) {
@@ -93,13 +115,159 @@ const Ads = () => {
 		setEditingId(null);
 	};
 
+	// --- Sort & Filter anwenden ---
+	const filteredAndSortedAds = useMemo(() => {
+		const filtered = ads.filter((a) => {
+			if (!showEmptyBudgetOnly) return true;
+			const remaining = a.budget ?? 0;
+			return remaining <= threshold;
+		});
+
+		const sorted = [...filtered].sort((a, b) => {
+			let av: string | number = 0;
+			let bv: string | number = 0;
+
+			switch (sortKey) {
+				case "url":
+					av = a.url.toLowerCase();
+					bv = b.url.toLowerCase();
+					break;
+				case "remaining":
+					av = a.budget ?? 0;
+					bv = b.budget ?? 0;
+					break;
+				case "spent":
+					av = calcSpent(a);
+					bv = calcSpent(b);
+					break;
+				case "createdAt":
+					av = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+					bv = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+					break;
+			}
+
+			if (av < bv) return sortDir === "asc" ? -1 : 1;
+			if (av > bv) return sortDir === "asc" ? 1 : -1;
+			return 0;
+		});
+
+		return sorted;
+	}, [ads, sortKey, sortDir, showEmptyBudgetOnly, threshold]);
+
+	const resetFilters = () => {
+		setShowEmptyBudgetOnly(false);
+		setThreshold(0);
+		setSortKey("createdAt");
+		setSortDir("desc");
+	};
+
+	const setThresholdQuick = (val: number) => {
+		setThreshold(val);
+		if (!showEmptyBudgetOnly) setShowEmptyBudgetOnly(true);
+	};
+
 	return (
 		<div className="ads-wrapper">
 			<h1 className="ads-title">Ads verwalten</h1>
 
-			<button className="new-ad-button" onClick={openModal}>
-				Neue Ad
-			</button>
+			{/* Toolbar: Filter & Sortierung – hübsch, zugänglich, ohne externe Libs */}
+			<div className="ads-toolbar">
+				<div className="toolbar-left">
+					<button className="btn-primary" onClick={openModal}>
+						Neue Ad
+					</button>
+				</div>
+
+				<div className="toolbar-right">
+					{/* Budget leer Filter */}
+					<div className="filter-card">
+						<div className="filter-row">
+							<label className="switch">
+								<input
+									type="checkbox"
+									checked={showEmptyBudgetOnly}
+									onChange={(e) => setShowEmptyBudgetOnly(e.target.checked)}
+									aria-label="Nur Ads mit leerem/geringem Budget anzeigen"
+								/>
+								<span className="slider" />
+							</label>
+							<span className="filter-label">Budget leer</span>
+						</div>
+
+						<div className="filter-row">
+							<span className="muted">Schwellwert ≤</span>
+							<input
+								className="input"
+								type="number"
+								min={0}
+								step={0.01}
+								value={threshold}
+								onChange={(e) => setThreshold(Number(e.target.value))}
+								title="Schwellwert für 'Budget leer'"
+							/>
+							<div className="chips">
+								<button
+									className={`chip ${threshold === 0 ? "active" : ""}`}
+									onClick={() => setThresholdQuick(0)}
+									type="button"
+								>
+									0
+								</button>
+								<button
+									className={`chip ${threshold === 1 ? "active" : ""}`}
+									onClick={() => setThresholdQuick(1)}
+									type="button"
+								>
+									1
+								</button>
+								<button
+									className={`chip ${threshold === 5 ? "active" : ""}`}
+									onClick={() => setThresholdQuick(5)}
+									type="button"
+								>
+									5
+								</button>
+							</div>
+						</div>
+					</div>
+
+					{/* Sortieren */}
+					<div className="filter-card">
+						<div className="filter-row">
+							<span className="filter-label">Sortieren nach</span>
+							<select
+								className="select"
+								value={sortKey}
+								onChange={(e) => setSortKey(e.target.value as SortKey)}
+								aria-label="Sortierfeld auswählen"
+							>
+								<option value="createdAt">Erstellt am</option>
+								<option value="url">URL</option>
+								<option value="remaining">Restbudget</option>
+								<option value="spent">Ausgaben</option>
+							</select>
+
+							<button
+								type="button"
+								className="btn-ghost"
+								onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+								aria-label={`Sortierreihenfolge umschalten (aktuell ${
+									sortDir === "asc" ? "aufsteigend" : "absteigend"
+								})`}
+								title={sortDir === "asc" ? "Aufsteigend" : "Absteigend"}
+							>
+								{sortDir === "asc" ? "▲" : "▼"}
+							</button>
+						</div>
+
+						<div className="filter-row">
+							<button type="button" className="btn-secondary" onClick={resetFilters}>
+								Zurücksetzen
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
 
 			<table className="ad-table">
 				<thead>
@@ -108,25 +276,54 @@ const Ads = () => {
 						<th>Gewicht</th>
 						<th>Limit</th>
 						<th>Aufrufe</th>
+						<th>Restbudget</th>
+						<th>Ausgaben</th>
+						<th>Erstellt am</th>
 						<th>Aktionen</th>
 					</tr>
 				</thead>
 				<tbody>
-					{ads.map((a) => (
-						<tr key={a.id}>
-							<td>{a.url}</td>
-							<td>{a.weight}</td>
-							<td>{a.limit ?? "∞"}</td>
-							<td>{a.calls}</td>
-							<td>
-								<button onClick={() => handleEdit(a)}>✏️</button>
-								<button onClick={() => handleDelete(a.id)}>🗑️</button>
-							</td>
-						</tr>
-					))}
+					{filteredAndSortedAds.map((a) => {
+						const remaining = a.budget ?? 0;
+						const spent = a.initialBudget != null && a.budget != null ? a.initialBudget - a.budget : null;
+						const isEmpty = showEmptyBudgetOnly ? remaining <= threshold : remaining === 0;
+
+						return (
+							<tr key={a.id} className={isEmpty ? "row-empty" : ""}>
+								<td className="url-cell">
+									<a href={a.url} target="_blank" rel="noreferrer" className="url-link">
+										{a.url}
+									</a>
+								</td>
+								<td>{a.weight}</td>
+								<td>{a.limit ?? "∞"}</td>
+								<td>{a.calls}</td>
+								<td>
+									{a.budget != null ? (
+										<>
+											{a.budget.toFixed(2)} {a.budget <= (threshold || 0) && <span className="badge danger">leer</span>}
+										</>
+									) : (
+										"—"
+									)}
+								</td>
+								<td>{spent != null ? spent.toFixed(2) : "—"}</td>
+								<td>{formatDate(a.createdAt)}</td>
+								<td>
+									<button className="table-action" onClick={() => handleEdit(a)} title="Bearbeiten">
+										✏️
+									</button>
+									<button className="table-action" onClick={() => handleDelete(a.id)} title="Löschen">
+										🗑️
+									</button>
+								</td>
+							</tr>
+						);
+					})}
 				</tbody>
 			</table>
 
+			{/* Modal */}
 			{showModal && (
 				<div className="modal-backdrop">
 					<div className="modal">
@@ -136,17 +333,14 @@ const Ads = () => {
 								URL:
 								<input name="url" value={formData.url} onChange={handleChange} required />
 							</label>
-
 							<label>
 								Gewichtung:
 								<input name="weight" type="number" min={1} value={formData.weight} onChange={handleChange} />
 							</label>
-
 							<label>
 								Limit:
 								<input name="limit" type="number" min={0} value={formData.limit ?? ""} onChange={handleChange} />
 							</label>
-
 							<label>
 								Budget (optional):
 								<input
@@ -158,7 +352,6 @@ const Ads = () => {
 									onChange={handleChange}
 								/>
 							</label>
-
 							<label>
 								Placement zuordnen:
 								<select name="placementId" value={formData.placementId ?? ""} onChange={handleChange}>
@@ -170,7 +363,6 @@ const Ads = () => {
 									))}
 								</select>
 							</label>
-
 							<div className="modal-actions">
 								<button type="button" onClick={closeModal}>
 									Abbrechen

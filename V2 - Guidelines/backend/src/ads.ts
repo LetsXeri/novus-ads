@@ -1,15 +1,23 @@
+// /backend/src/ads.ts
 import { Router } from "express";
 import { db } from "./db";
-import { Ad } from "./types/ad";
+
+// Domain-Typ (optional; falls du eine Datei ./types/ad.ts hast, kannst du diese importieren)
+export type Ad = {
+	id: number;
+	url: string;
+	weight: number;
+	limit: number | null;
+	calls: number;
+	budget: number | null; // Restbudget
+	initialBudget: number | null; // Startbudget (für Ausgabenberechnung)
+	placementId: number | null;
+	createdAt?: string;
+};
 
 const router = Router();
 
-/**
- * Ads = vormals "Targets"
- * - Tabelle: ads
- * - Fremdschlüssel: placementId
- */
-
+/** Hilfsfunktionen */
 function parseNullableNumber(v: unknown): number | null | undefined {
 	if (v === null) return null;
 	if (v === undefined) return undefined;
@@ -17,10 +25,13 @@ function parseNullableNumber(v: unknown): number | null | undefined {
 	return Number.isFinite(n) ? n : undefined;
 }
 
-// GET /ads – alle Ads
-router.get("/", (req, res) => {
+/** ============================
+ *  GET /api/v1/ads
+ *  Alle Ads (neueste zuerst)
+ *  ============================ */
+router.get("/", (_req, res) => {
 	try {
-		const stmt = db.prepare("SELECT * FROM ads");
+		const stmt = db.prepare("SELECT * FROM ads ORDER BY createdAt DESC");
 		const ads = stmt.all() as Ad[];
 		res.json(ads);
 	} catch (err) {
@@ -29,7 +40,13 @@ router.get("/", (req, res) => {
 	}
 });
 
-// POST /ads – neue Ad anlegen
+/** ============================
+ *  POST /api/v1/ads
+ *  Neue Ad anlegen
+ *  - validiert Budget/Limit (nicht negativ)
+ *  - setzt initialBudget = budget (für Ausgabenberechnung)
+ *  - setzt createdAt = now
+ *  ============================ */
 router.post("/", (req, res) => {
 	const { url, weight } = req.body;
 	const limit = parseNullableNumber(req.body?.limit) ?? null;
@@ -48,10 +65,10 @@ router.post("/", (req, res) => {
 
 	try {
 		const stmt = db.prepare(`
-      INSERT INTO ads (url, weight, "limit", calls, placementId, budget)
-      VALUES (?, ?, ?, 0, ?, ?)
+      INSERT INTO ads (url, weight, "limit", calls, placementId, budget, initialBudget, createdAt)
+      VALUES (?, ?, ?, 0, ?, ?, ?, datetime('now'))
     `);
-		const result = stmt.run(url, weight, limit, placementId, budget);
+		const result = stmt.run(url, weight, limit, placementId, budget, budget /* initialBudget = budget */);
 
 		res.status(201).json({
 			id: result.lastInsertRowid,
@@ -61,6 +78,8 @@ router.post("/", (req, res) => {
 			calls: 0,
 			placementId,
 			budget,
+			initialBudget: budget,
+			createdAt: new Date().toISOString(),
 		} as Ad);
 	} catch (err) {
 		console.error("❌ Fehler beim Anlegen:", err);
@@ -68,7 +87,12 @@ router.post("/", (req, res) => {
 	}
 });
 
-// PUT /ads/:id – Ad bearbeiten
+/** ============================
+ *  PUT /api/v1/ads/:id
+ *  Ad bearbeiten (teilweise Updates)
+ *  - validiert: Budget/Limit/Calls nicht negativ
+ *  - initialBudget wird nur gesetzt, falls bisher NULL (Erstinitialisierung)
+ *  ============================ */
 router.put("/:id", (req, res) => {
 	const { id } = req.params;
 
@@ -95,7 +119,7 @@ router.put("/:id", (req, res) => {
 		if (limit !== null && limit < 0) {
 			return res.status(400).json({ error: "Limit darf nicht negativ sein" });
 		}
-		fields.push('"limit" = ?');
+		fields.push(`"limit" = ?`);
 		values.push(limit);
 	}
 	if (calls !== undefined) {
@@ -113,7 +137,10 @@ router.put("/:id", (req, res) => {
 		if (budget !== null && budget < 0) {
 			return res.status(400).json({ error: "Budget darf nicht negativ sein" });
 		}
+		// Budget aktualisieren – initialBudget nur setzen, wenn bisher NULL (Erstinitialisierung)
 		fields.push("budget = ?");
+		values.push(budget);
+		fields.push("initialBudget = COALESCE(initialBudget, ?)");
 		values.push(budget);
 	}
 
@@ -139,7 +166,12 @@ router.put("/:id", (req, res) => {
 	}
 });
 
-// DELETE /ads/:id – Ad löschen
+/** ============================
+ *  DELETE /api/v1/ads/:id
+ *  Ad löschen (hartes Löschen)
+ *  - 404, wenn ID nicht existiert
+ *  - 204 bei Erfolg
+ *  ============================ */
 router.delete("/:id", (req, res) => {
 	const { id } = req.params;
 
@@ -151,7 +183,7 @@ router.delete("/:id", (req, res) => {
 			return res.status(404).json({ error: "Ad nicht gefunden" });
 		}
 
-		res.status(204).send();
+		res.status(204).send(); // No Content
 	} catch (err) {
 		console.error("❌ Fehler beim Löschen:", err);
 		res.status(500).send("Fehler beim Löschen der Ad");

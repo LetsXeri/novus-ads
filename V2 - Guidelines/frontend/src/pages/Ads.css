@@ -57,3 +57,209 @@
 	cursor: pointer;
 	margin-right: 4px;
 }
+
+.ads-toolbar {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 16px;
+	margin-bottom: 16px;
+	align-items: start;
+}
+
+.toolbar-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.toolbar-right {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	justify-content: flex-end;
+}
+
+.filter-card {
+	background: #ffffff;
+	border: 1px solid #e5e7eb;
+	border-radius: 12px;
+	padding: 12px;
+	min-width: 280px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.filter-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.filter-label {
+	font-weight: 600;
+	color: #1f2937;
+}
+
+.muted {
+	color: #6b7280;
+	font-size: 0.9rem;
+}
+
+/* Buttons */
+.btn-primary {
+	background: #3b82f6;
+	color: white;
+	border: none;
+	padding: 8px 14px;
+	border-radius: 10px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+.btn-primary:hover {
+	background: #2563eb;
+}
+
+.btn-secondary {
+	background: #f3f4f6;
+	color: #111827;
+	border: 1px solid #e5e7eb;
+	padding: 8px 12px;
+	border-radius: 10px;
+	font-weight: 500;
+	cursor: pointer;
+}
+.btn-secondary:hover {
+	background: #e5e7eb;
+}
+
+.btn-ghost {
+	background: #ffffff;
+	border: 1px solid #e5e7eb;
+	border-radius: 8px;
+	padding: 6px 10px;
+	cursor: pointer;
+}
+.btn-ghost:hover {
+	background: #f9fafb;
+}
+
+/* Inputs */
+.input,
+.select {
+	padding: 8px;
+	border: 1px solid #d1d5db;
+	border-radius: 8px;
+}
+
+.chips {
+	display: flex;
+	gap: 6px;
+}
+.chip {
+	background: #f3f4f6;
+	color: #111827;
+	border: 1px solid #e5e7eb;
+	border-radius: 999px;
+	padding: 4px 10px;
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+.chip:hover {
+	background: #e5e7eb;
+}
+.chip.active {
+	background: #e0f2ff;
+	color: #2563eb;
+	border-color: #bae6fd;
+}
+
+/* iOS-like Switch */
+.switch {
+	position: relative;
+	display: inline-block;
+	width: 42px;
+	height: 24px;
+}
+.switch input {
+	display: none;
+}
+.slider {
+	position: absolute;
+	cursor: pointer;
+	top: 2px;
+	left: 2px;
+	right: 2px;
+	bottom: 2px;
+	background-color: #e5e7eb;
+	transition: 0.2s;
+	border-radius: 999px;
+}
+.slider:before {
+	position: absolute;
+	content: "";
+	height: 18px;
+	width: 18px;
+	left: 3px;
+	bottom: 3px;
+	background-color: white;
+	transition: 0.2s;
+	border-radius: 50%;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.switch input:checked + .slider {
+	background-color: #3b82f6;
+}
+.switch input:checked + .slider:before {
+	transform: translateX(18px);
+}
+
+/* Tabelle kosmetik */
+.url-cell {
+	max-width: 360px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.url-link {
+	color: #2563eb;
+	text-decoration: none;
+}
+.url-link:hover {
+	text-decoration: underline;
+}
+
+.table-action {
+	background: none;
+	border: 1px solid #e5e7eb;
+	padding: 4px 8px;
+	border-radius: 8px;
+	cursor: pointer;
+	margin-right: 6px;
+}
+.table-action:hover {
+	background: #f9fafb;
+}
+
+.badge {
+	display: inline-block;
+	font-size: 0.75rem;
+	padding: 2px 8px;
+	border-radius: 999px;
+	margin-left: 6px;
+	vertical-align: middle;
+}
+.badge.danger {
+	background: #fee2e2;
+	color: #991b1b;
+}
+
+/* Visuelles Highlighting für „leer“ */
+.row-empty {
+	background: #fff7ed;
+}
+.row-empty:hover {
+	background: #ffedd5;
+}

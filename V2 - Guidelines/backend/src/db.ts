@@ -2,23 +2,16 @@ import Database from "better-sqlite3";
 import path from "path";
 import { config } from "./config";
 
-// Wir unterstützen Pfade wie "./data.sqlite" oder "/data/data.sqlite".
-// "file:"-Schema erlauben wir weiterhin, strippen es aber für better-sqlite3.
 function normalizeSqlitePath(input: string): string {
-	if (input.startsWith("file:")) {
-		return input.replace(/^file:/, "");
-	}
+	if (input.startsWith("file:")) return input.replace(/^file:/, "");
 	return input;
 }
 
 const dbPath = normalizeSqlitePath(config.databaseUrl);
-
-// Bei relativen Pfaden relativ zum backend-Verzeichnis ablegen
 const resolvedPath = path.isAbsolute(dbPath) ? dbPath : path.join(__dirname, "..", dbPath);
-
 export const db = new Database(resolvedPath);
 
-// Tabellen (inkl. Budget-Constraint)
+// placements
 db.exec(`
   CREATE TABLE IF NOT EXISTS placements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,6 +22,7 @@ db.exec(`
   )
 `);
 
+// ads (NEU: createdAt, initialBudget; CHECK verhindert negative Budgets)
 db.exec(`
   CREATE TABLE IF NOT EXISTS ads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,8 +31,11 @@ db.exec(`
     "limit" INTEGER,
     calls INTEGER DEFAULT 0,
     budget REAL,
+    initialBudget REAL,
     placementId INTEGER,
-    CHECK (budget IS NULL OR budget >= 0)
+    createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+    CHECK (budget IS NULL OR budget >= 0),
+    CHECK (initialBudget IS NULL OR initialBudget >= 0)
   )
 `);
 
