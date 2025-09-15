@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env.production
+    ports:
+      - "4000:4000"
+    volumes:
+      - db_data:/data
+    networks:
+      - web
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Für den Build der Frontend-App (siehe Dockerfile)
+        VITE_API_URL: /api
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - web
+
+networks:
+  web:
+
+volumes:
+  db_data:

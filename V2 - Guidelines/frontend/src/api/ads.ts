@@ -1,15 +1,12 @@
 import { Ad } from "../types/ad";
+import { API_URL } from "../config";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-// Alle Ads abrufen
 export const getAds = async (): Promise<Ad[]> => {
 	const res = await fetch(`${API_URL}/ads`);
 	if (!res.ok) throw new Error("Fehler beim Laden der Ads");
 	return res.json();
 };
 
-// Neue Ad anlegen
 export const createAd = async (data: Partial<Ad>) => {
 	await fetch(`${API_URL}/ads`, {
 		method: "POST",
@@ -18,7 +15,6 @@ export const createAd = async (data: Partial<Ad>) => {
 	});
 };
 
-// Ad aktualisieren
 export const updateAd = async (id: number, data: Partial<Ad>) => {
 	await fetch(`${API_URL}/ads/${id}`, {
 		method: "PUT",
@@ -27,7 +23,6 @@ export const updateAd = async (id: number, data: Partial<Ad>) => {
 	});
 };
 
-// Ad löschen
 export const deleteAd = async (id: number) => {
 	await fetch(`${API_URL}/ads/${id}`, { method: "DELETE" });
 };

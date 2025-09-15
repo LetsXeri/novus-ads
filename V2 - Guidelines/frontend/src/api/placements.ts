@@ -1,21 +1,14 @@
 import { Placement, PlacementEarningsEntry } from "../types/placement";
+import { API_URL } from "../config";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-// Alle Placements abrufen
-export const fetchPlacements = async (): Promise<Placement[]> => {
+export async function fetchPlacements(): Promise<Placement[]> {
 	const res = await fetch(`${API_URL}/placements`);
-
-	if (!res.ok) {
-		throw new Error("Fehler beim Laden der Placements");
-	}
-
+	if (!res.ok) throw new Error("Fehler beim Laden der Placements");
 	return res.json();
-};
+}
 
-// Einnahmen eines Placements abrufen
-export const getPlacementEarnings = async (placementId: number): Promise<PlacementEarningsEntry[]> => {
-	const res = await fetch(`${API_URL}/placements/${placementId}/earnings`);
+export async function getPlacementEarnings(id: number): Promise<PlacementEarningsEntry[]> {
+	const res = await fetch(`${API_URL}/placements/${id}/earnings`);
 	if (!res.ok) throw new Error("Fehler beim Laden der Einnahmen");
 	return res.json();
-};
+}

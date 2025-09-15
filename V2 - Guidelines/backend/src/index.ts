@@ -1,28 +1,46 @@
-import express from "express";
+import express, { Router } from "express";
 import cors from "cors";
+import { config } from "./config";
 
 import placementsRouter from "./placements";
 import adsRouter from "./ads";
+
+import { withApiVersion, markDeprecated } from "./middleware/versioning";
 
 const app = express();
 app.use(express.json());
 app.use(
 	cors({
-		origin: "http://localhost:5173",
+		origin: config.corsOrigin,
 	})
 );
 
-// Neue, klare Terminologie
-app.use("/placements", placementsRouter);
-app.use("/ads", adsRouter);
+// ---- v1 Router zusammenbauen ----
+const v1 = Router();
+v1.use("/placements", placementsRouter);
+v1.use("/ads", adsRouter);
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-	console.log(`🚀 API läuft auf http://localhost:${PORT}`);
-	console.log("📌 Endpunkte:");
-	console.log("   /placements   (vormals /campaigns)");
-	console.log("   /ads          (vormals /targets)");
-	if (process.env.ENABLE_LEGACY_ALIASES === "1") {
-		console.log("   ⚠️ Legacy aktiv: /campaigns, /targets");
+// Health
+v1.get("/healthz", (_req, res) => res.json({ ok: true, env: config.env, version: config.api.version }));
+
+// ---- Mount /api/v1/... ----
+const v1BasePath = `${config.api.prefix}/${config.api.version}`;
+app.use(v1BasePath, withApiVersion(config.api.version), v1);
+
+// ---- Backward-Compatibility: /api/* (unversioniert) → deprecate, aber weiterhin funktionsfähig ----
+if (config.api.enableUnversioned) {
+	app.use(
+		config.api.prefix,
+		markDeprecated(config.api.unversionedSunset),
+		withApiVersion(config.api.version),
+		v1 // gleiche Routen-Struktur unter /api/*
+	);
+}
+
+app.listen(config.port, () => {
+	console.log(`🚀 API läuft auf http://0.0.0.0:${config.port}`);
+	console.log(`   Mounted v${config.api.version}: ${v1BasePath}`);
+	if (config.api.enableUnversioned) {
+		console.log(`   Legacy (deprecated): ${config.api.prefix}/*  (Sunset: ${config.api.unversionedSunset})`);
 	}
 });

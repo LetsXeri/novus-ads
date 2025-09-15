@@ -1,11 +1,24 @@
 import Database from "better-sqlite3";
 import path from "path";
+import { config } from "./config";
 
-// Datenbank-Datei (lokal im Projektverzeichnis)
-const dbPath = path.join(__dirname, "../data.sqlite");
-export const db = new Database(dbPath);
+// Wir unterstützen Pfade wie "./data.sqlite" oder "/data/data.sqlite".
+// "file:"-Schema erlauben wir weiterhin, strippen es aber für better-sqlite3.
+function normalizeSqlitePath(input: string): string {
+	if (input.startsWith("file:")) {
+		return input.replace(/^file:/, "");
+	}
+	return input;
+}
 
-// === Tabelle: placements (vormals campaigns) ===
+const dbPath = normalizeSqlitePath(config.databaseUrl);
+
+// Bei relativen Pfaden relativ zum backend-Verzeichnis ablegen
+const resolvedPath = path.isAbsolute(dbPath) ? dbPath : path.join(__dirname, "..", dbPath);
+
+export const db = new Database(resolvedPath);
+
+// Tabellen (inkl. Budget-Constraint)
 db.exec(`
   CREATE TABLE IF NOT EXISTS placements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,8 +29,6 @@ db.exec(`
   )
 `);
 
-// === Tabelle: ads (vormals targets) ===
-// NEU: CHECK-Constraint verhindert negative Budgets dauerhaft.
 db.exec(`
   CREATE TABLE IF NOT EXISTS ads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +42,6 @@ db.exec(`
   )
 `);
 
-// === Tabelle: placement_earnings (vormals campaign_earnings) ===
 db.exec(`
   CREATE TABLE IF NOT EXISTS placement_earnings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,5 +52,3 @@ db.exec(`
     UNIQUE(placementId, year, month)
   )
 `);
-
-export default db;
