@@ -9,6 +9,6 @@
 		"moduleResolution": "node",
 		"outDir": "dist"
 	},
-	"include": ["src"],
+	"include": ["src", "jest.config.cjs"],
 	"exclude": ["node_modules"]
 }

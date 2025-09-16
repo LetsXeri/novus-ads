@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "./db";
 import { Ad } from "./types/ad";
+import { pickWeightedAlias } from "./utils/aliasSampler";
 
 const router = Router();
 
@@ -118,9 +119,8 @@ router.get("/:id/earnings", (req, res) => {
 	}
 });
 
-/** Kosten pro Aufruf berechnen
+/** Kosten pro Aufruf berechnen.
  * Nur wenn limit > 0 und budget != NULL.
- * Hinweis: Das ist euer bestehendes Modell (budget/limit); wird hier beibehalten.
  */
 function computeCostPerCall(limit: number | null, budget: number | null): number {
 	if (limit !== null && limit > 0 && budget !== null) {
@@ -129,34 +129,23 @@ function computeCostPerCall(limit: number | null, budget: number | null): number
 	return 0;
 }
 
-/** Weighted-Roulette */
-function pickWeighted<T extends { weight: number }>(items: T[]): T | null {
-	const total = items.reduce((s, i) => s + i.weight, 0);
-	if (total <= 0) return null;
-	const r = Math.random() * total;
-	let acc = 0;
-	for (const it of items) {
-		acc += it.weight;
-		if (r <= acc) return it;
-	}
-	return null;
-}
-
 /**
  * GET /placements/:id/redirect
- * Atomare Buchung: kein negativer Budgetstand, kein Redirect bei limit=0,
- * und nur wenn verfügbares Budget die Buchung deckt.
+ * Optimierte Weighted Selection via Vose (Alias-Methode).
+ * - Exkludiert Ads mit limit = 0, weight <= 0 oder leerem Budget (falls gesetzt).
+ * - Bleibt atomar (Transaktion) und sicher gegen Budget-Unterlauf.
  */
 router.get("/:id/redirect", (req, res) => {
 	const { id } = req.params;
 
 	try {
-		// Kandidaten lesen: limit>0 & calls<limit, budget NULL/oder >0 (Affordability check folgt in TX)
+		// Kandidaten abrufen:
 		const stmt = db.prepare(`
       SELECT * FROM ads
       WHERE placementId = ?
         AND ("limit" IS NULL OR ("limit" > 0 AND calls < "limit"))
         AND (budget IS NULL OR budget > 0)
+        AND weight > 0
     `);
 		const ads = stmt.all(id) as Ad[];
 
@@ -164,19 +153,22 @@ router.get("/:id/redirect", (req, res) => {
 			return res.status(404).send("Kein Target verfügbar");
 		}
 
-		// Auswahl
-		const chosen = pickWeighted(ads);
-		if (!chosen) return res.status(404).send("Kein Target verfügbar");
+		// O(n) Preprocessing, O(1) Sampling
+		const chosen = pickWeightedAlias(ads, (a) => a.weight);
+		if (!chosen) {
+			return res.status(404).send("Kein Target verfügbar");
+		}
 
-		// Buchung atomar (BEGIN IMMEDIATE sperrt früh, verhindert Race Conditions)
-		const tx = db.transaction((ad: Ad) => {
-			const { id: adId, limit, budget, placementId } = ad;
+		// Defensive Absicherung (bei parallelen Updates)
+		if (chosen.limit !== null && chosen.limit <= 0) {
+			return res.status(404).send("Kein Target verfügbar");
+		}
 
-			const costPerCall = computeCostPerCall(limit, budget);
+		const { id: adId, limit, budget, placementId } = chosen;
+		const costPerCall = computeCostPerCall(limit, budget);
 
-			// Bedingtes Update schützt gegen Unterläufe & Rennen:
-			// - limit (falls vorhanden) noch nicht überschritten
-			// - budget (falls vorhanden) ausreichend für Buchung
+		// Atomare Buchung
+		const tx = db.transaction((callCost: number) => {
 			const result = db
 				.prepare(
 					`
@@ -184,7 +176,7 @@ router.get("/:id/redirect", (req, res) => {
         SET calls = calls + 1,
             budget = CASE
               WHEN budget IS NOT NULL AND "limit" IS NOT NULL AND "limit" > 0
-                THEN budget - ?
+                THEN MAX(0, budget - ?)
               ELSE budget
             END
         WHERE id = ?
@@ -192,15 +184,13 @@ router.get("/:id/redirect", (req, res) => {
           AND (budget IS NULL OR budget - ? >= 0)
       `
 				)
-				.run(costPerCall, adId, costPerCall);
+				.run(callCost, adId, callCost);
 
 			if (result.changes === 0) {
-				// Nicht (mehr) verfügbar oder Budget nicht ausreichend
 				return { ok: false as const };
 			}
 
-			// Einnahmen nur buchen, wenn wirklich Kosten angefallen sind
-			if (placementId !== null && costPerCall > 0) {
+			if (placementId !== null && callCost > 0) {
 				const now = new Date();
 				const year = now.getFullYear();
 				const month = now.getMonth() + 1;
@@ -211,7 +201,7 @@ router.get("/:id/redirect", (req, res) => {
           SET totalEarnings = totalEarnings + ?
           WHERE id = ?
         `
-				).run(costPerCall, placementId);
+				).run(callCost, placementId);
 
 				db.prepare(
 					`
@@ -220,20 +210,18 @@ router.get("/:id/redirect", (req, res) => {
           ON CONFLICT(placementId, year, month)
           DO UPDATE SET amount = amount + excluded.amount
         `
-				).run(placementId, year, month, costPerCall);
+				).run(placementId, year, month, callCost);
 			}
 
-			return { ok: true as const, url: ad.url };
+			return { ok: true as const };
 		});
 
-		const outcome = tx(chosen);
-
+		const outcome = tx(costPerCall);
 		if (!outcome.ok) {
-			// Fallback: Ein anderer Request war schneller; melde klar "Kein Target verfügbar"
 			return res.status(404).send("Kein Target verfügbar");
 		}
 
-		return res.redirect(302, outcome.url!);
+		return res.redirect(302, chosen.url);
 	} catch (err) {
 		console.error("❌ Fehler beim Redirect:", err);
 		res.status(500).send("Fehler beim Redirect");
