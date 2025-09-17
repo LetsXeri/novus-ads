@@ -1,5 +1,3 @@
-// /backend/src/types/ad.ts
-
 export type Ad = {
 	id: number;
 	url: string;
@@ -7,7 +5,8 @@ export type Ad = {
 	limit: number | null; // max. Aufrufe, null = unbegrenzt
 	calls: number; // bisherige Aufrufe
 	budget: number | null; // Restbudget
-	initialBudget: number | null; // Startbudget (neu für Ausgaben)
+	initialBudget: number | null; // Startbudget
 	placementId: number | null;
-	createdAt: string; // ISO-Zeitstempel der Erstellung
+	createdAt: string; // ISO
+	rateLimitPerMinute: number | null; // neu: pro-Ad Rate Limit (z. B. 100)
 };

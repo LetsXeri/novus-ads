@@ -11,7 +11,7 @@ const dbPath = normalizeSqlitePath(config.databaseUrl);
 const resolvedPath = path.isAbsolute(dbPath) ? dbPath : path.join(__dirname, "..", dbPath);
 export const db = new Database(resolvedPath);
 
-// placements
+// === Tabelle: placements ===
 db.exec(`
   CREATE TABLE IF NOT EXISTS placements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,7 +22,8 @@ db.exec(`
   )
 `);
 
-// ads (NEU: createdAt, initialBudget; CHECK verhindert negative Budgets)
+// === Tabelle: ads ===
+// Neu: createdAt, initialBudget, rateLimitPerMinute; CHECKs verhindern negative Werte
 db.exec(`
   CREATE TABLE IF NOT EXISTS ads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,11 +35,14 @@ db.exec(`
     initialBudget REAL,
     placementId INTEGER,
     createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+    rateLimitPerMinute INTEGER,
     CHECK (budget IS NULL OR budget >= 0),
-    CHECK (initialBudget IS NULL OR initialBudget >= 0)
+    CHECK (initialBudget IS NULL OR initialBudget >= 0),
+    CHECK (rateLimitPerMinute IS NULL OR rateLimitPerMinute >= 0)
   )
 `);
 
+// === Tabelle: placement_earnings (monatliche Einnahmen) ===
 db.exec(`
   CREATE TABLE IF NOT EXISTS placement_earnings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,3 +53,16 @@ db.exec(`
     UNIQUE(placementId, year, month)
   )
 `);
+
+// === Tabelle: ad_rate_counters (pro Ad & pro Minute) ===
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ad_rate_counters (
+    adId INTEGER NOT NULL,
+    windowStart INTEGER NOT NULL, -- Unix-Minute (epochMin = floor(unixSeconds / 60))
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (adId, windowStart)
+  )
+`);
+
+// Performance-Indexe (optional, aber sinnvoll)
+db.exec(`CREATE INDEX IF NOT EXISTS idx_ad_rate_counters_ad ON ad_rate_counters (adId)`);
