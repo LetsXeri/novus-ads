@@ -4,6 +4,7 @@ import { config } from "./config";
 
 import placementsRouter from "./placements";
 import adsRouter from "./ads";
+import analyticsRouter from "./analytics";
 
 import { withApiVersion, markDeprecated } from "./middleware/versioning";
 
@@ -19,6 +20,7 @@ app.use(
 const v1 = Router();
 v1.use("/placements", placementsRouter);
 v1.use("/ads", adsRouter);
+app.use("/api/v1/analytics", analyticsRouter);
 
 // Health
 v1.get("/healthz", (_req, res) => res.json({ ok: true, env: config.env, version: config.api.version }));

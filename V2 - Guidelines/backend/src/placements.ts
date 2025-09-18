@@ -5,21 +5,134 @@ import { pickWeightedAlias } from "./utils/aliasSampler";
 
 const router = Router();
 
-// ... (GET/POST/PUT/DELETE/earnings wie zuvor) ...
+// GET /placements
+router.get("/", (_req, res) => {
+	try {
+		const stmt = db.prepare("SELECT * FROM placements ORDER BY createdAt DESC");
+		const placements = stmt.all();
+		res.json(placements);
+	} catch (err) {
+		console.error("❌ Fehler beim Abrufen:", err);
+		res.status(500).send("Fehler beim Abrufen");
+	}
+});
+
+// POST /placements
+router.post("/", (req, res) => {
+	const { name, status } = req.body;
+	if (!name) return res.status(400).json({ error: "Name fehlt" });
+
+	try {
+		const stmt = db.prepare(`
+      INSERT INTO placements (name, status, createdAt, totalEarnings)
+      VALUES (?, ?, datetime('now'), 0)
+    `);
+		const result = stmt.run(name, status);
+		res.status(201).json({
+			id: result.lastInsertRowid,
+			name,
+			status: status ?? "Aktiv",
+			totalEarnings: 0,
+		});
+	} catch (err) {
+		console.error("❌ Fehler beim Erstellen:", err);
+		res.status(500).send("Fehler beim Erstellen");
+	}
+});
+
+// PUT /placements/:id
+router.put("/:id", (req, res) => {
+	const { id } = req.params;
+	const { name, status } = req.body;
+
+	if (!name && !status) {
+		return res.status(400).json({ error: "Name oder Status muss angegeben werden" });
+	}
+
+	const fields: string[] = [];
+	const values: any[] = [];
+
+	if (typeof name === "string") {
+		fields.push("name = ?");
+		values.push(name);
+	}
+	if (typeof status === "string") {
+		fields.push("status = ?");
+		values.push(status);
+	}
+
+	const sql = `UPDATE placements SET ${fields.join(", ")} WHERE id = ?`;
+	values.push(id);
+
+	try {
+		const stmt = db.prepare(sql);
+		const result = stmt.run(...values);
+
+		if (result.changes === 0) {
+			return res.status(404).json({ error: "Placement nicht gefunden" });
+		}
+
+		res.json({ id, updatedFields: fields.map((f) => f.split(" = ")[0]) });
+	} catch (err) {
+		console.error("❌ Fehler beim Aktualisieren:", err);
+		res.status(500).send("Fehler beim Aktualisieren");
+	}
+});
+
+// DELETE /placements/:id
+router.delete("/:id", (req, res) => {
+	const { id } = req.params;
+
+	try {
+		const stmt = db.prepare("DELETE FROM placements WHERE id = ?");
+		const result = stmt.run(id);
+
+		if (result.changes === 0) {
+			return res.status(404).json({ error: "Placement nicht gefunden" });
+		}
+
+		res.status(204).send();
+	} catch (err) {
+		console.error("❌ Fehler beim Löschen:", err);
+		res.status(500).send("Fehler beim Löschen");
+	}
+});
+
+// GET /placements/:id/earnings
+router.get("/:id/earnings", (req, res) => {
+	const { id } = req.params;
+
+	try {
+		const stmt = db.prepare(`
+      SELECT year, month, amount
+      FROM placement_earnings
+      WHERE placementId = ?
+      ORDER BY year DESC, month DESC
+    `);
+		const earnings = stmt.all(id);
+		res.json(earnings);
+	} catch (err) {
+		console.error("❌ Fehler beim Abrufen der Einnahmen:", err);
+		res.status(500).send("Fehler beim Abrufen");
+	}
+});
 
 function computeCostPerCall(limit: number | null, budget: number | null): number {
 	if (limit !== null && limit > 0 && budget !== null) return budget / limit;
 	return 0;
 }
 
+// GET /placements/:id/redirect
+// - Filtert Ads nach Budget/Limit/RateLimit
+// - Wählt gewichtet via O(1)-Alias-Sampling
+// - Verbucht atomar: calls, budget, earnings (monatlich), daily KPIs
 router.get("/:id/redirect", (req, res) => {
 	const { id } = req.params;
 
 	try {
-		// Aktuelles Zeitfenster (Unix-Minute)
 		const windowStart = Math.floor(Date.now() / 60000);
 
-		// Kandidaten: Limit, Budget, Gewicht und RateLimit berücksichtigen
+		// Kandidaten mit RateLimit-Check
 		const stmt = db.prepare(`
       SELECT a.*
       FROM ads a
@@ -41,22 +154,23 @@ router.get("/:id/redirect", (req, res) => {
 			return res.status(404).send("Kein Target verfügbar");
 		}
 
-		// O(1) Sampling mit Alias-Methode
-		const chosen = pickWeightedAlias(ads, (a) => a.weight);
+		// Gewählte Ad via Alias-Sampling (kein direkter new AliasSampler(...))
+		const chosen = pickWeightedAlias(ads, (a) => (a.weight > 0 ? a.weight : 0));
 		if (!chosen) {
 			return res.status(404).send("Kein Target verfügbar");
 		}
 
-		// defensive Checks
+		// defensive: limit=0 nicht ausspielen
 		if (chosen.limit !== null && chosen.limit <= 0) {
 			return res.status(404).send("Kein Target verfügbar");
 		}
 
 		const { id: adId, limit, budget, placementId, rateLimitPerMinute } = chosen;
-		const costPerCall = computeCostPerCall(limit, budget);
+		const callCost = computeCostPerCall(limit, budget);
 
-		const tx = db.transaction((callCost: number) => {
-			// 1) Rate Counter upsert – nur erhöhen, wenn unter Limit
+		// Atomare Buchung in einer Transaktion
+		const tx = db.transaction((costPerCall: number) => {
+			// 1) RateCounter upsert (mit Limit)
 			if (rateLimitPerMinute !== null) {
 				const up = db
 					.prepare(
@@ -71,11 +185,11 @@ router.get("/:id/redirect", (req, res) => {
 					.run(adId, windowStart, rateLimitPerMinute);
 
 				if (up.changes === 0) {
-					// Limit erreicht — nicht ausspielen
+					// Limit erreicht, nicht ausspielen
 					return { ok: false as const };
 				}
 			} else {
-				// unlimited: zeile anlegen/erhöhen ohne Obergrenze (nur als Telemetrie, optional)
+				// optionales Tracking ohne Obergrenze
 				db.prepare(
 					`
           INSERT INTO ad_rate_counters (adId, windowStart, count)
@@ -86,7 +200,7 @@ router.get("/:id/redirect", (req, res) => {
 				).run(adId, windowStart);
 			}
 
-			// 2) Ad calls & Budget aktualisieren (mit Sicherheitsbedingungen)
+			// 2) Calls & Budget (nicht ins Negative, Limit beachten)
 			const upd = db
 				.prepare(
 					`
@@ -102,40 +216,56 @@ router.get("/:id/redirect", (req, res) => {
           AND (budget IS NULL OR budget - ? >= 0)
       `
 				)
-				.run(callCost, adId, callCost);
+				.run(costPerCall, adId, costPerCall);
 
 			if (upd.changes === 0) {
 				return { ok: false as const };
 			}
 
-			// 3) Earnings buchen
-			if (placementId !== null && callCost > 0) {
+			// 3) Earnings & KPIs (nur wenn Placement bekannt)
+			if (placementId !== null) {
 				const now = new Date();
 				const year = now.getFullYear();
 				const month = now.getMonth() + 1;
+				const dateStr = now.toISOString().slice(0, 10); // yyyy-mm-dd
 
+				// totalEarnings & monatliche Einnahmen nur bei positiver Buchung
+				if (costPerCall > 0) {
+					db.prepare(
+						`
+            UPDATE placements
+            SET totalEarnings = totalEarnings + ?
+            WHERE id = ?
+          `
+					).run(costPerCall, placementId);
+
+					db.prepare(
+						`
+            INSERT INTO placement_earnings (placementId, year, month, amount)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(placementId, year, month)
+            DO UPDATE SET amount = amount + excluded.amount
+          `
+					).run(placementId, year, month, costPerCall);
+				}
+
+				// Daily KPIs (calls immer +1, earnings ggf. +0)
 				db.prepare(
 					`
-          UPDATE placements
-          SET totalEarnings = totalEarnings + ?
-          WHERE id = ?
+          INSERT INTO placement_daily_kpis (placementId, date, earnings, calls)
+          VALUES (?, ?, ?, 1)
+          ON CONFLICT(placementId, date)
+          DO UPDATE SET
+            earnings = earnings + excluded.earnings,
+            calls = calls + 1
         `
-				).run(callCost, placementId);
-
-				db.prepare(
-					`
-          INSERT INTO placement_earnings (placementId, year, month, amount)
-          VALUES (?, ?, ?, ?)
-          ON CONFLICT(placementId, year, month)
-          DO UPDATE SET amount = amount + excluded.amount
-        `
-				).run(placementId, year, month, callCost);
+				).run(placementId, dateStr, costPerCall);
 			}
 
 			return { ok: true as const };
 		});
 
-		const outcome = tx(costPerCall);
+		const outcome = tx(callCost);
 		if (!outcome.ok) {
 			return res.status(404).send("Kein Target verfügbar");
 		}

@@ -23,7 +23,6 @@ db.exec(`
 `);
 
 // === Tabelle: ads ===
-// Neu: createdAt, initialBudget, rateLimitPerMinute; CHECKs verhindern negative Werte
 db.exec(`
   CREATE TABLE IF NOT EXISTS ads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,15 +53,27 @@ db.exec(`
   )
 `);
 
-// === Tabelle: ad_rate_counters (pro Ad & pro Minute) ===
+// === Tabelle: placement_daily_kpis (tägliche KPIs pro Placement) ===
+db.exec(`
+  CREATE TABLE IF NOT EXISTS placement_daily_kpis (
+    placementId INTEGER NOT NULL,
+    date TEXT NOT NULL, -- ISO yyyy-mm-dd
+    earnings REAL NOT NULL DEFAULT 0,
+    calls INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (placementId, date)
+  )
+`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_placement_daily_kpis_date ON placement_daily_kpis(date)`);
+
+// === Tabelle: ad_rate_counters (Rate-Limiting pro Minute) ===
 db.exec(`
   CREATE TABLE IF NOT EXISTS ad_rate_counters (
     adId INTEGER NOT NULL,
-    windowStart INTEGER NOT NULL, -- Unix-Minute (epochMin = floor(unixSeconds / 60))
+    windowStart INTEGER NOT NULL, -- Minuten-Bucket
     count INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (adId, windowStart)
   )
 `);
-
-// Performance-Indexe (optional, aber sinnvoll)
-db.exec(`CREATE INDEX IF NOT EXISTS idx_ad_rate_counters_ad ON ad_rate_counters (adId)`);
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_ad_rate_counters_ad ON ad_rate_counters (adId)
+`);
