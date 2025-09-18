@@ -1,0 +1,24 @@
+body {
+	font-family: system-ui, sans-serif;
+	background-color: #f9f9f9;
+	margin: 0;
+	padding: 0;
+	color: #1f2937;
+}
+
+.sidebar {
+	width: 260px;
+	height: 100vh;
+	background: white;
+	border-right: 1px solid #e5e7eb;
+	padding: 24px;
+}
+
+.button-primary {
+	background-color: #3b82f6;
+	color: white;
+	padding: 8px 16px;
+	border-radius: 12px;
+	border: none;
+	font-weight: bold;
+}

@@ -1,0 +1,59 @@
+.targets-wrapper {
+	max-width: 800px;
+	margin: 0 auto;
+	padding: 24px;
+}
+
+.targets-title {
+	font-size: 1.5rem;
+	font-weight: bold;
+	margin-bottom: 24px;
+}
+
+.target-form {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 24px;
+}
+
+.target-form input {
+	padding: 8px;
+	border: 1px solid #ccc;
+	border-radius: 6px;
+	flex: 1;
+	min-width: 160px;
+}
+
+.target-form button {
+	background: #3b82f6;
+	color: white;
+	border: none;
+	padding: 8px 16px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: 500;
+}
+
+.target-form button:hover {
+	background: #2563eb;
+}
+
+.target-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.target-table th,
+.target-table td {
+	padding: 12px;
+	border-bottom: 1px solid #ddd;
+	text-align: left;
+}
+
+.target-table button {
+	background: none;
+	border: none;
+	cursor: pointer;
+	margin-right: 4px;
+}

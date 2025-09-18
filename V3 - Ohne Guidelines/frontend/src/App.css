@@ -1,0 +1,25 @@
+.app-layout {
+	display: flex;
+	font-family: system-ui, sans-serif;
+}
+
+.app-main {
+	flex: 1;
+	padding: 24px;
+	background-color: #f9fafb;
+	min-height: 100vh;
+
+	/* Platz für Sidebar nur, wenn Sidebar fixed ist */
+	margin-left: 300px;
+	transition: margin 0.3s ease;
+}
+
+@media (max-width: 768px) {
+	.app-main {
+		margin-left: 0;
+	}
+}
+.main-content {
+	max-width: 1120px;
+	margin: 0 auto;
+}

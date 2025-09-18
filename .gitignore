@@ -1,6 +1,7 @@
 # --- Node modules ---
 V1 - Grundlage/**/node_modules/
 V2 - Guidelines/**/node_modules/
+V3 - Ohne Guidelines/**/node_modules/
 
 # --- Build output ---
 V1 - Grundlage/frontend/dist/
@@ -15,6 +16,12 @@ V2 - Guidelines/frontend/.vite/
 V2 - Guidelines/frontend/.next/
 V2 - Guidelines/backend/build/
 
+V3 - Ohne Guidelines/frontend/dist/
+V3 - Ohne Guidelines/backend/dist/
+V3 - Ohne Guidelines/frontend/.vite/
+V3 - Ohne Guidelines/frontend/.next/
+V3 - Ohne Guidelines/backend/build/
+
 # --- Logs ---
 V1 - Grundlage/**/npm-debug.log*
 V1 - Grundlage/**/yarn-debug.log*
@@ -24,6 +31,10 @@ V2 - Guidelines/**/npm-debug.log*
 V2 - Guidelines/**/yarn-debug.log*
 V2 - Guidelines/**/yarn-error.log*
 
+V3 - Ohne Guidelines/**/npm-debug.log*
+V3 - Ohne Guidelines/**/yarn-debug.log*
+V3 - Ohne Guidelines/**/yarn-error.log*
+
 pnpm-debug.log*
 
 # --- dotenv files ---
@@ -32,6 +43,9 @@ V1 - Grundlage/**/.env.*
 
 V2 - Guidelines/**/.env
 V2 - Guidelines/**/.env.*
+
+V3 - Ohne Guidelines/**/.env
+V3 - Ohne Guidelines/**/.env.*
 
 # --- SQLite database files ---
 V1 - Grundlage/backend/**/*.sqlite
@@ -46,10 +60,16 @@ V2 - Guidelines/backend/**/*.db
 V2 - Guidelines/backend/**/*.db3
 V2 - Guidelines/backend/prisma/dev.db
 
+V3 - Ohne Guidelines/backend/**/*.sqlite
+V3 - Ohne Guidelines/backend/**/*.sqlite3
+V3 - Ohne Guidelines/backend/**/*.db
+V3 - Ohne Guidelines/backend/**/*.db3
+V3 - Ohne Guidelines/backend/prisma/dev.db
 
 # --- Prisma migrations (optional – je nach Workflow) ---
 # V1 - Grundlage/backend/prisma/migrations/
 # V2 - Guidelines/backend/prisma/migrations/
+# V3 - Ohne Guidelines/backend/prisma/migrations/
 
 # --- IDEs / Editor configs ---
 .vscode/
@@ -63,10 +83,12 @@ Thumbs.db
 # --- Coverage / Test Output ---
 V1 - Grundlage/**/coverage/
 V2 - Guidelines/**/coverage/
+V3 - Ohne Guidelines/**/coverage/
 
 # --- Lockfiles (wenn nur Yarn genutzt wird) ---
 V1 - Grundlage/**/package-lock.json
 V2 - Guidelines/**/package-lock.json
+V3 - Ohne Guidelines/**/package-lock.json
 
 # --- Yarn Plug'n'Play ---
 .yarn/cache
